@@ -19,42 +19,70 @@ class TransaksiHarian(tb.Frame):
 
     # ================= UI =================
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
+            header_frame,
             text="Transaksi Harian (Non-Member)",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Registrasi Pengunjung", padding=20, bootstyle="primary")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        form_frame.columnconfigure(1, weight=1)
 
-        tb.Label(form, text="Nama Pengunjung").grid(row=0, column=0, sticky=W, padx=5)
-        self.nama_entry = tb.Entry(form, width=30)
-        self.nama_entry.grid(row=0, column=1, padx=5)
+        # Row 0: Nama
+        tb.Label(form_frame, text="Nama Pengunjung:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        self.nama_entry = tb.Entry(form_frame)
+        self.nama_entry.grid(row=0, column=1, sticky=EW, padx=10)
 
-        tb.Label(form, text="Harga").grid(row=1, column=0, sticky=W, padx=5)
-        self.harga_entry = tb.Entry(form, width=30, state="readonly")
-        self.harga_entry.grid(row=1, column=1, padx=5)
+        # Row 1: Harga
+        tb.Label(form_frame, text="Harga Tiket (Rp):").grid(row=1, column=0, sticky=W, padx=10, pady=10)
+        self.harga_entry = tb.Entry(form_frame, state="readonly")
+        self.harga_entry.grid(row=1, column=1, sticky=EW, padx=10)
         self.set_harga()
 
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
-
+        # BUTTONS
+        btn_frame = tb.Frame(self)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
         tb.Button(
-            btn, text="Simpan Transaksi", bootstyle=SUCCESS, command=self.insert
+            btn_frame, text="Simpan Transaksi", bootstyle="success", command=self.insert
         ).pack(side=LEFT, padx=5)
 
+        tb.Button(
+            btn_frame, text="Export CSV", bootstyle="info", command=self.export_csv
+        ).pack(side=RIGHT, padx=5)
+
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
+
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("nama", "tanggal", "jam", "harga"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
+
         self.tree.heading("nama", text="Nama")
         self.tree.heading("tanggal", text="Tanggal")
         self.tree.heading("jam", text="Jam Masuk")
         self.tree.heading("harga", text="Harga")
+        
+        self.tree.column("nama", width=200)
+        self.tree.column("harga", width=100)
 
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.pack(fill=BOTH, expand=True)
 
     # ================= LOGIC =================
     def set_harga(self):
@@ -112,3 +140,37 @@ class TransaksiHarian(tb.Frame):
         self.nama_entry.delete(0, END)
         self.load_data()
         messagebox.showinfo("Sukses", "Transaksi harian berhasil disimpan")
+
+    # ================= EXPORT =================
+    def export_csv(self):
+        try:
+            import pandas as pd
+            from tkinter import filedialog
+            
+            conn = get_connection()
+            query = """
+                SELECT nama_pengunjung, tanggal, waktu_masuk, harga
+                FROM transaksi_harian
+                ORDER BY tanggal DESC
+            """
+            df = pd.read_sql_query(query, conn)
+            conn.close()
+            
+            if df.empty:
+                messagebox.showinfo("Info", "Tidak ada data untuk diexport.")
+                return
+
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV Files", "*.csv")],
+                title="Simpan Laporan Transaksi Harian"
+            )
+            
+            if filename:
+                df.to_csv(filename, index=False)
+                messagebox.showinfo("Sukses", f"Data berhasil diexport ke:\n{filename}")
+                
+        except ImportError:
+            messagebox.showerror("Error", "Modul 'pandas' belum terinstall.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal export data: {str(e)}")

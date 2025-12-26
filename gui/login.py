@@ -15,29 +15,70 @@ class Login(tb.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        tb.Label(
-            self,
-            text="Login",
-            font=("Segoe UI", 18, "bold")
-        ).pack(pady=20)
+        # Container untuk centering
+        container = tb.Frame(self)
+        container.place(relx=0.5, rely=0.5, anchor=CENTER)
 
-        form = tb.Frame(self)
+        # Card Frame (Untuk efek border/bg)
+        card = tb.Frame(container, bootstyle="secondary", padding=30)
+        card.pack()
+
+        # Title
+        tb.Label(
+            card,
+            text="GYM MANAGEMEN SYSTEM",
+            font=("Helvetica", 24, "bold"),
+            bootstyle="inverse-secondary"
+        ).pack(pady=(0, 20))
+
+        tb.Label(
+            card,
+            text="Login Area",
+            font=("Helvetica", 12),
+            bootstyle="inverse-secondary"
+        ).pack(pady=(0, 20))
+
+        # Form
+        form = tb.Frame(card, bootstyle="secondary")
         form.pack(pady=10)
 
-        tb.Label(form, text="Username").grid(row=0, column=0, padx=5, pady=5)
-        self.username_entry = tb.Entry(form, width=30)
-        self.username_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Username
+        username_frame = tb.Frame(form, bootstyle="secondary")
+        username_frame.pack(fill=X, pady=5)
+        tb.Label(
+            username_frame, 
+            text="Username", 
+            bootstyle="inverse-secondary",
+            font=("Helvetica", 10)
+        ).pack(anchor=W)
+        self.username_entry = tb.Entry(username_frame, width=35, font=("Helvetica", 10))
+        self.username_entry.pack(pady=(5, 0))
 
-        tb.Label(form, text="Password").grid(row=1, column=0, padx=5, pady=5)
-        self.password_entry = tb.Entry(form, width=30, show="*")
-        self.password_entry.grid(row=1, column=1, padx=5, pady=5)
+        # Password
+        password_frame = tb.Frame(form, bootstyle="secondary")
+        password_frame.pack(fill=X, pady=10)
+        tb.Label(
+            password_frame, 
+            text="Password", 
+            bootstyle="inverse-secondary",
+            font=("Helvetica", 10)
+        ).pack(anchor=W)
+        self.password_entry = tb.Entry(
+            password_frame, 
+            width=35, 
+            show="•", 
+            font=("Helvetica", 10)
+        )
+        self.password_entry.pack(pady=(5, 0))
 
+        # Button
         tb.Button(
-            self,
-            text="Login",
-            bootstyle=SUCCESS,
+            card,
+            text="LOGIN",
+            bootstyle="primary",
+            width=20,
             command=self.login
-        ).pack(pady=10)
+        ).pack(pady=20)
 
     def login(self):
         username = self.username_entry.get().strip()

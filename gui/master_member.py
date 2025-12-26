@@ -17,56 +17,79 @@ class MasterMember(tb.Frame):
         self.load_data()
 
     # ================= UI =================
+    # ================= UI =================
     def create_widgets(self):
-        title = tb.Label(
-            self,
-            text="Master Member",
-            font=("Segoe UI", 16, "bold")
-        )
-        title.pack(pady=10)
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
+        tb.Label(
+            header_frame,
+            text="Master Data Member",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        # -------- FORM --------
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Form Input Data", padding=20, bootstyle="info")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        # Grid Configuration
+        form_frame.columnconfigure(1, weight=1)
+        form_frame.columnconfigure(3, weight=1)
 
-        tb.Label(form, text="Nama").grid(row=0, column=0, sticky=W, padx=5, pady=5)
-        self.nama_entry = tb.Entry(form, width=30)
-        self.nama_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Row 1
+        tb.Label(form_frame, text="Nama Lengkap:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        self.nama_entry = tb.Entry(form_frame)
+        self.nama_entry.grid(row=0, column=1, sticky=EW, padx=10)
 
-        tb.Label(form, text="Umur").grid(row=1, column=0, sticky=W, padx=5, pady=5)
-        self.umur_entry = tb.Entry(form, width=30)
-        self.umur_entry.grid(row=1, column=1, padx=5, pady=5)
+        tb.Label(form_frame, text="Umur:").grid(row=0, column=2, sticky=W, padx=10, pady=10)
+        self.umur_entry = tb.Entry(form_frame)
+        self.umur_entry.grid(row=0, column=3, sticky=EW, padx=10)
 
-        tb.Label(form, text="Jenis Kelamin").grid(row=2, column=0, sticky=W, padx=5, pady=5)
+        # Row 2
+        tb.Label(form_frame, text="Jenis Kelamin:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
         self.jk_combo = tb.Combobox(
-            form,
+            form_frame,
             values=["L", "P"],
-            state="readonly",
-            width=28
+            state="readonly"
         )
-        self.jk_combo.grid(row=2, column=1, padx=5, pady=5)
+        self.jk_combo.grid(row=1, column=1, sticky=EW, padx=10)
         self.jk_combo.set("L")
 
-        # -------- BUTTON --------
+        # BUTTON ACTION BAR
         btn_frame = tb.Frame(self)
-        btn_frame.pack(pady=10)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
+        # Left side buttons
+        tb.Button(btn_frame, text="Simpan", bootstyle="success", command=self.insert).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Update", bootstyle="warning", command=self.update).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Hapus", bootstyle="danger", command=self.delete).pack(side=LEFT, padx=5)
+        
+        # Right side button
+        tb.Button(btn_frame, text="Reset Form", bootstyle="outline-secondary", command=self.reset_form).pack(side=RIGHT, padx=5)
 
-        tb.Button(btn_frame, text="Tambah", bootstyle=SUCCESS, command=self.insert).pack(side=LEFT, padx=5)
-        tb.Button(btn_frame, text="Update", bootstyle=WARNING, command=self.update).pack(side=LEFT, padx=5)
-        tb.Button(btn_frame, text="Hapus", bootstyle=DANGER, command=self.delete).pack(side=LEFT, padx=5)
-        tb.Button(btn_frame, text="Reset", bootstyle=SECONDARY, command=self.reset_form).pack(side=LEFT, padx=5)
+        # TABLE AREA
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        # Scrollbar
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
-        # -------- TABLE --------
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("nama", "umur", "jk"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="info.Treeview" # Use boootstyle
         )
-        self.tree.heading("nama", text="Nama")
-        self.tree.heading("umur", text="Umur")
-        self.tree.heading("jk", text="JK")
+        y_scroll.config(command=self.tree.yview)
 
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.heading("nama", text="Nama Member")
+        self.tree.heading("umur", text="Umur")
+        self.tree.heading("jk", text="Jenis Kelamin")
+
+        self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
     # ================= DATABASE =================

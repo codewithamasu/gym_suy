@@ -5,17 +5,15 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from database.db import get_connection
 
-class MasterTrainer(tb.Frame):
+class MasterAlat(tb.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack(fill=BOTH, expand=True)
 
         self.selected_id = None
-
         self.create_widgets()
         self.load_data()
 
-    # ================= UI =================
     # ================= UI =================
     def create_widgets(self):
         # HEADER
@@ -23,36 +21,31 @@ class MasterTrainer(tb.Frame):
         header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
             header_frame,
-            text="Master Data Trainer",
+            text="Master Data Alat Gym",
             font=("Helvetica", 18, "bold"),
             bootstyle="primary"
         ).pack(side=LEFT)
 
         # FORM CONTAINER
-        form_frame = tb.Labelframe(self, text="Form Input Trainer", padding=20, bootstyle="info")
+        form_frame = tb.Labelframe(self, text="Form Input Alat", padding=20, bootstyle="primary")
         form_frame.pack(fill=X, padx=20, pady=5)
         
         form_frame.columnconfigure(1, weight=1)
-        form_frame.columnconfigure(3, weight=1)
 
-        # Row 0
-        tb.Label(form_frame, text="Nama Trainer:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        # Row 0: Nama Alat
+        tb.Label(form_frame, text="Nama Alat:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
         self.nama_entry = tb.Entry(form_frame)
         self.nama_entry.grid(row=0, column=1, sticky=EW, padx=10)
 
-        tb.Label(form_frame, text="Spesialisasi:").grid(row=0, column=2, sticky=W, padx=10, pady=10)
-        self.spesialisasi_combo = tb.Combobox(
+        # Row 1: Kondisi
+        tb.Label(form_frame, text="Kondisi:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
+        self.kondisi_combo = tb.Combobox(
             form_frame,
-            values=["Strength", "Cardio", "Yoga", "Rehabilitation"],
+            values=["Bagus", "Rusak Ringan", "Rusak Berat", "Perlu Maintenance"],
             state="readonly"
         )
-        self.spesialisasi_combo.grid(row=0, column=3, sticky=EW, padx=10)
-        self.spesialisasi_combo.set("Strength")
-
-        # Row 1
-        tb.Label(form_frame, text="Tarif / Sesi:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
-        self.tarif_entry = tb.Entry(form_frame)
-        self.tarif_entry.grid(row=1, column=1, sticky=EW, padx=10)
+        self.kondisi_combo.grid(row=1, column=1, sticky=EW, padx=10)
+        self.kondisi_combo.set("Bagus")
 
         # BUTTONS
         btn_frame = tb.Frame(self)
@@ -72,16 +65,18 @@ class MasterTrainer(tb.Frame):
 
         self.tree = ttk.Treeview(
             tree_frame,
-            columns=("nama", "spesialisasi", "tarif"),
+            columns=("nama", "kondisi"),
             show="headings",
             yscrollcommand=y_scroll.set,
-            style="info.Treeview"
+            style="primary.Treeview"
         )
         y_scroll.config(command=self.tree.yview)
 
-        self.tree.heading("nama", text="Nama Trainer")
-        self.tree.heading("spesialisasi", text="Spesialisasi")
-        self.tree.heading("tarif", text="Tarif Per Sesi (Rp)")
+        self.tree.heading("nama", text="Nama Alat")
+        self.tree.heading("kondisi", text="Kondisi")
+        
+        self.tree.column("nama", width=300)
+        self.tree.column("kondisi", width=150)
 
         self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
@@ -92,7 +87,7 @@ class MasterTrainer(tb.Frame):
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM trainers")
+        cursor.execute("SELECT * FROM alat_gym")
         rows = cursor.fetchall()
         conn.close()
 
@@ -101,83 +96,90 @@ class MasterTrainer(tb.Frame):
                 "",
                 END,
                 iid=row["id"],
-                values=(row["nama"], row["spesialisasi"], row["tarif_per_sesi"])
+                values=(row["nama_alat"], row["kondisi"])
             )
 
     def insert(self):
-        nama = self.nama_entry.get()
-        spesialisasi = self.spesialisasi_combo.get()
-        tarif = self.tarif_entry.get()
+        nama = self.nama_entry.get().strip()
+        kondisi = self.kondisi_combo.get()
 
-        if not nama or not tarif:
-            messagebox.showwarning("Validasi", "Nama dan tarif wajib diisi")
-            return
-
-        try:
-            tarif = int(tarif)
-        except ValueError:
-            messagebox.showwarning("Validasi", "Tarif harus angka")
+        if not nama:
+            messagebox.showwarning("Validasi", "Nama alat wajib diisi")
             return
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO trainers (id, nama, spesialisasi, tarif_per_sesi)
-            VALUES (?, ?, ?, ?)
-        """, (
-            str(uuid.uuid4()),
-            nama,
-            self.spesialisasi_combo.get(),
-            tarif
-        ))
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute("""
+                INSERT INTO alat_gym (id, nama_alat, kondisi)
+                VALUES (?, ?, ?)
+            """, (
+                str(uuid.uuid4()),
+                nama,
+                kondisi
+            ))
+            conn.commit()
+            messagebox.showinfo("Sukses", "Data alat berhasil disimpan")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        finally:
+            conn.close()
 
         self.load_data()
         self.reset_form()
 
     def update(self):
         if not self.selected_id:
-            messagebox.showwarning("Pilih Data", "Pilih trainer terlebih dahulu")
+            messagebox.showwarning("Pilih Data", "Pilih alat terlebih dahulu")
             return
+        
+        nama = self.nama_entry.get().strip()
+        kondisi = self.kondisi_combo.get()
 
-        try:
-            tarif = int(self.tarif_entry.get())
-        except ValueError:
-            messagebox.showwarning("Validasi", "Tarif harus angka")
+        if not nama:
+            messagebox.showwarning("Validasi", "Nama alat tidak boleh kosong")
             return
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE trainers
-            SET nama = ?, spesialisasi = ?, tarif_per_sesi = ?
-            WHERE id = ?
-        """, (
-            self.nama_entry.get(),
-            self.spesialisasi_combo.get(),
-            tarif,
-            self.selected_id
-        ))
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute("""
+                UPDATE alat_gym
+                SET nama_alat = ?, kondisi = ?
+                WHERE id = ?
+            """, (
+                nama,
+                kondisi,
+                self.selected_id
+            ))
+            conn.commit()
+            messagebox.showinfo("Sukses", "Data alat berhasil diperbarui")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        finally:
+            conn.close()
 
         self.load_data()
         self.reset_form()
 
     def delete(self):
         if not self.selected_id:
-            messagebox.showwarning("Pilih Data", "Pilih trainer terlebih dahulu")
+            messagebox.showwarning("Pilih Data", "Pilih alat terlebih dahulu")
             return
 
-        if not messagebox.askyesno("Konfirmasi", "Yakin ingin menghapus trainer ini?"):
+        if not messagebox.askyesno("Konfirmasi", "Yakin ingin menghapus alat ini?"):
             return
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM trainers WHERE id = ?", (self.selected_id,))
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute("DELETE FROM alat_gym WHERE id = ?", (self.selected_id,))
+            conn.commit()
+            messagebox.showinfo("Sukses", "Data alat berhasil dihapus")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        finally:
+            conn.close()
 
         self.load_data()
         self.reset_form()
@@ -194,14 +196,9 @@ class MasterTrainer(tb.Frame):
         self.nama_entry.delete(0, END)
         self.nama_entry.insert(0, values[0])
 
-        self.spesialisasi_combo.delete(0, END)
-        self.spesialisasi_combo.insert(0, values[1])
-
-        self.tarif_entry.delete(0, END)
-        self.tarif_entry.insert(0, values[2])
+        self.kondisi_combo.set(values[1])
 
     def reset_form(self):
         self.selected_id = None
         self.nama_entry.delete(0, END)
-        self.spesialisasi_combo.delete(0, END)
-        self.tarif_entry.delete(0, END)
+        self.kondisi_combo.set("Bagus")

@@ -16,41 +16,67 @@ class Absensi(tb.Frame):
 
     # ================= UI =================
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
-            text="Absensi Member",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            header_frame,
+            text="Menu Absensi Member",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Catat Kehadiran", padding=20, bootstyle="primary")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        form_frame.columnconfigure(1, weight=1)
 
-        tb.Label(form, text="Member").grid(row=0, column=0, sticky=W, padx=5)
-        self.member_combo = tb.Combobox(form, state="readonly", width=30)
-        self.member_combo.grid(row=0, column=1, padx=5)
+        # Row 0
+        tb.Label(form_frame, text="Pilih Member:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        self.member_combo = tb.Combobox(form_frame, state="readonly")
+        self.member_combo.grid(row=0, column=1, sticky=EW, padx=10)
 
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
-
+        # BUTTONS
+        btn_frame = tb.Frame(self)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
         tb.Button(
-            btn, text="Clock In", bootstyle=SUCCESS, command=self.clock_in
+            btn_frame, text="Clock In (Masuk)", bootstyle="success", command=self.clock_in
         ).pack(side=LEFT, padx=5)
 
         tb.Button(
-            btn, text="Clock Out", bootstyle=WARNING, command=self.clock_out
+            btn_frame, text="Clock Out (Keluar)", bootstyle="warning", command=self.clock_out
         ).pack(side=LEFT, padx=5)
+
+        tb.Button(
+            btn_frame, text="Export CSV", bootstyle="info", command=self.export_csv
+        ).pack(side=RIGHT, padx=5)
+
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("member", "tanggal", "masuk", "keluar"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
+
         self.tree.heading("member", text="Member")
         self.tree.heading("tanggal", text="Tanggal")
         self.tree.heading("masuk", text="Jam Masuk")
         self.tree.heading("keluar", text="Jam Keluar")
+        
+        self.tree.column("member", width=200)
 
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.pack(fill=BOTH, expand=True)
 
     # ================= LOAD =================
     def load_members(self):
@@ -194,3 +220,38 @@ class Absensi(tb.Frame):
         conn.commit()
         conn.close()
         self.load_absensi()
+
+    # ================= EXPORT =================
+    def export_csv(self):
+        try:
+            import pandas as pd
+            from tkinter import filedialog
+            
+            conn = get_connection()
+            query = """
+                SELECT a.id, m.nama AS Member, a.tanggal, a.jam_masuk, a.jam_keluar
+                FROM absensi a
+                JOIN members m ON a.member_id = m.id
+                ORDER BY a.tanggal DESC
+            """
+            df = pd.read_sql_query(query, conn)
+            conn.close()
+            
+            if df.empty:
+                messagebox.showinfo("Info", "Tidak ada data untuk diexport.")
+                return
+
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV Files", "*.csv")],
+                title="Simpan Laporan Absensi"
+            )
+            
+            if filename:
+                df.to_csv(filename, index=False)
+                messagebox.showinfo("Sukses", f"Data berhasil diexport ke:\n{filename}")
+                
+        except ImportError:
+            messagebox.showerror("Error", "Modul 'pandas' belum terinstall.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal export data: {str(e)}")

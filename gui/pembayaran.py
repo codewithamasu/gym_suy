@@ -16,36 +16,62 @@ class Pembayaran(tb.Frame):
         self.load_transaksi()
 
     # ================= UI =================
+    # ================= UI =================
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
-            text="Pembayaran Membership",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            header_frame,
+            text="Menu Pembayaran Membership",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
+
+        # ACTION BAR
+        action_frame = tb.Frame(self)
+        action_frame.pack(fill=X, padx=20, pady=10)
+
+        tb.Label(action_frame, text="Pilih Transaksi untuk dibayar:", font=("Helvetica", 11), bootstyle="secondary").pack(side=LEFT, padx=5)
+        
+        tb.Button(
+            action_frame, 
+            text="Proses Pembayaran", 
+            bootstyle="success", 
+            command=self.open_struk
+        ).pack(side=RIGHT, padx=5)
+
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("id", "member", "durasi", "mulai", "akhir", "harga", "status"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
 
         self.tree.heading("id", text="ID")
         self.tree.heading("member", text="Member")
         self.tree.heading("durasi", text="Durasi (Bulan)")
         self.tree.heading("mulai", text="Mulai")
         self.tree.heading("akhir", text="Berakhir")
-        self.tree.heading("harga", text="Total")
+        self.tree.heading("harga", text="Total Tagihan")
         self.tree.heading("status", text="Status")
 
         self.tree.column("id", width=0, stretch=False)
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.column("member", width=150)
+        self.tree.column("durasi", width=100)
+        self.tree.column("status", width=100)
+        
+        self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
-
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
-
-        tb.Button(btn, text="Bayar", bootstyle=SUCCESS, command=self.open_struk)\
-            .pack(side=LEFT, padx=5)
 
     # ================= LOAD =================
     def load_transaksi(self):

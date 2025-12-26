@@ -20,59 +20,78 @@ class MasterKelas(tb.Frame):
 
     # ================= UI =================
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
-            text="Master Kelas Gym",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            header_frame,
+            text="Master Data Kelas Gym",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Jadwal Kelas Baru", padding=20, bootstyle="primary")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        form_frame.columnconfigure(1, weight=1)
+        form_frame.columnconfigure(3, weight=1)
 
-        tb.Label(form, text="Nama Kelas").grid(row=0, column=0, sticky=W, padx=5)
-        self.nama_entry = tb.Entry(form, width=30)
-        self.nama_entry.grid(row=0, column=1, padx=5)
+        # Row 0
+        tb.Label(form_frame, text="Nama Kelas:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        self.nama_entry = tb.Entry(form_frame)
+        self.nama_entry.grid(row=0, column=1, sticky=EW, padx=10)
 
-        tb.Label(form, text="Trainer").grid(row=1, column=0, sticky=W, padx=5)
-        self.trainer_combo = tb.Combobox(form, state="readonly", width=28)
-        self.trainer_combo.grid(row=1, column=1, padx=5)
+        tb.Label(form_frame, text="Trainer:").grid(row=0, column=2, sticky=W, padx=10, pady=10)
+        self.trainer_combo = tb.Combobox(form_frame, state="readonly")
+        self.trainer_combo.grid(row=0, column=3, sticky=EW, padx=10)
 
-        tb.Label(form, text="Tanggal Kelas").grid(row=2, column=0, sticky=W, padx=5)
-        self.tanggal_entry = DateEntry(form, width=27, bootstyle=PRIMARY)
-        self.tanggal_entry.grid(row=2, column=1, padx=5)
+        # Row 1
+        tb.Label(form_frame, text="Tanggal:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
+        self.tanggal_entry = DateEntry(form_frame, bootstyle=PRIMARY)
+        self.tanggal_entry.grid(row=1, column=1, sticky=EW, padx=10)
 
-        tb.Label(form, text="Jam (HH:MM)").grid(row=3, column=0, sticky=W, padx=5)
-        self.jam_entry = tb.Entry(form, width=30)
-        self.jam_entry.grid(row=3, column=1, padx=5)
+        tb.Label(form_frame, text="Jam (HH:MM):").grid(row=1, column=2, sticky=W, padx=10, pady=10)
+        self.jam_entry = tb.Entry(form_frame)
+        self.jam_entry.grid(row=1, column=3, sticky=EW, padx=10)
 
-        tb.Label(form, text="Kapasitas").grid(row=4, column=0, sticky=W, padx=5)
-        self.kapasitas_entry = tb.Entry(form, width=30)
-        self.kapasitas_entry.grid(row=4, column=1, padx=5)
+        # Row 2
+        tb.Label(form_frame, text="Kapasitas (Org):").grid(row=2, column=0, sticky=W, padx=10, pady=10)
+        self.kapasitas_entry = tb.Entry(form_frame)
+        self.kapasitas_entry.grid(row=2, column=1, sticky=EW, padx=10)
 
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
+        # BUTTONS
+        btn_frame = tb.Frame(self)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
+        tb.Button(btn_frame, text="Simpan", bootstyle=SUCCESS, command=self.insert).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Update", bootstyle=WARNING, command=self.update).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Hapus", bootstyle=DANGER, command=self.delete).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Reset", bootstyle="outline-secondary", command=self.reset).pack(side=RIGHT, padx=5)
 
-        tb.Button(btn, text="Tambah", bootstyle=SUCCESS, command=self.insert)\
-            .pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Update", bootstyle=WARNING, command=self.update)\
-            .pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Hapus", bootstyle=DANGER, command=self.delete)\
-            .pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Reset", bootstyle=SECONDARY, command=self.reset)\
-            .pack(side=LEFT, padx=5)
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("nama", "trainer", "tanggal", "jam", "kapasitas"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
+        
         self.tree.heading("nama", text="Nama Kelas")
         self.tree.heading("trainer", text="Trainer")
         self.tree.heading("tanggal", text="Tanggal")
         self.tree.heading("jam", text="Jam")
         self.tree.heading("kapasitas", text="Kapasitas")
 
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
     # ================= LOAD =================

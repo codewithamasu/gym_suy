@@ -15,48 +15,75 @@ class MasterPaket(tb.Frame):
         self.load_data()
 
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
-            text="Master Paket Membership (Bulanan)",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            header_frame,
+            text="Master Paket Membership",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Form Paket", padding=20, bootstyle="primary")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        form_frame.columnconfigure(1, weight=1)
 
-        tb.Label(form, text="Durasi (Bulan)").grid(row=0, column=0, sticky=W, padx=5)
+        # Row 0: Durasi
+        tb.Label(form_frame, text="Durasi (Bulan):").grid(row=0, column=0, sticky=W, padx=10, pady=10)
         self.durasi_combo = tb.Combobox(
-            form,
+            form_frame,
             values=[1, 2, 3, 6, 12],
-            state="readonly",
-            width=28
+            state="readonly"
         )
-        self.durasi_combo.grid(row=0, column=1, padx=5)
+        self.durasi_combo.grid(row=0, column=1, sticky=EW, padx=10)
         self.durasi_combo.set(1)
         self.durasi_combo.bind("<<ComboboxSelected>>", self.update_harga)
 
-        tb.Label(form, text="Harga").grid(row=1, column=0, sticky=W, padx=5)
-        self.harga_entry = tb.Entry(form, width=30, state="readonly")
-        self.harga_entry.grid(row=1, column=1, padx=5)
+        # Row 1: Harga
+        tb.Label(form_frame, text="Harga (Rp):").grid(row=1, column=0, sticky=W, padx=10, pady=10)
+        
+        # Frame for cost + auto calc info
+        harga_frame = tb.Frame(form_frame)
+        harga_frame.grid(row=1, column=1, sticky=EW, padx=10)
+        
+        self.harga_entry = tb.Entry(harga_frame)
+        self.harga_entry.pack(side=LEFT, fill=X, expand=True)
+        tb.Label(harga_frame, text="*Auto-calculated based on duration", font=("Helvetica", 8, "italic"), bootstyle="secondary").pack(side=LEFT, padx=10)
 
         self.update_harga()
 
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
+        # BUTTONS
+        btn_frame = tb.Frame(self)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
+        tb.Button(btn_frame, text="Simpan", bootstyle="success", command=self.insert).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Update", bootstyle="warning", command=self.update).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Hapus", bootstyle="danger", command=self.delete).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Reset", bootstyle="outline-secondary", command=self.reset).pack(side=RIGHT, padx=5)
 
-        tb.Button(btn, text="Tambah", bootstyle=SUCCESS, command=self.insert).pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Update", bootstyle=WARNING, command=self.update).pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Hapus", bootstyle=DANGER, command=self.delete).pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Reset", bootstyle=SECONDARY, command=self.reset).pack(side=LEFT, padx=5)
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("durasi", "harga"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
+
         self.tree.heading("durasi", text="Durasi (Bulan)")
-        self.tree.heading("harga", text="Harga")
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.heading("harga", text="Harga (Rp)")
+        
+        self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
     def update_harga(self, _=None):
