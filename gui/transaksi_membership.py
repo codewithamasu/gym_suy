@@ -17,45 +17,66 @@ class TransaksiMembership(tb.Frame):
         self.load_data()
 
     # ================= UI =================
+    # ================= UI =================
     def create_widgets(self):
+        # HEADER
+        header_frame = tb.Frame(self)
+        header_frame.pack(fill=X, padx=20, pady=20)
         tb.Label(
-            self,
-            text="Transaksi Membership (Bulanan)",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=10)
+            header_frame,
+            text="Registrasi Membership Baru",
+            font=("Helvetica", 18, "bold"),
+            bootstyle="primary"
+        ).pack(side=LEFT)
 
-        form = tb.Frame(self)
-        form.pack(pady=10)
+        # FORM CONTAINER
+        form_frame = tb.Labelframe(self, text="Form Transaksi", padding=20, bootstyle="primary")
+        form_frame.pack(fill=X, padx=20, pady=5)
+        
+        form_frame.columnconfigure(1, weight=1)
 
         # MEMBER
-        tb.Label(form, text="Member").grid(row=0, column=0, sticky=W, padx=5, pady=5)
-        self.member_combo = tb.Combobox(form, state="readonly", width=30)
-        self.member_combo.grid(row=0, column=1, padx=5, pady=5)
+        tb.Label(form_frame, text="Pilih Member:").grid(row=0, column=0, sticky=W, padx=10, pady=10)
+        self.member_combo = tb.Combobox(form_frame, state="readonly")
+        self.member_combo.grid(row=0, column=1, sticky=EW, padx=10)
 
         # PAKET
-        tb.Label(form, text="Paket (Bulan)").grid(row=1, column=0, sticky=W, padx=5, pady=5)
-        self.paket_combo = tb.Combobox(form, state="readonly", width=30)
-        self.paket_combo.grid(row=1, column=1, padx=5, pady=5)
+        tb.Label(form_frame, text="Pilih Paket:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
+        self.paket_combo = tb.Combobox(form_frame, state="readonly")
+        self.paket_combo.grid(row=1, column=1, sticky=EW, padx=10)
 
-        btn = tb.Frame(self)
-        btn.pack(pady=10)
+        # BUTTONS
+        btn_frame = tb.Frame(self)
+        btn_frame.pack(fill=X, padx=20, pady=20)
+        
+        tb.Button(btn_frame, text="Buat Transaksi", bootstyle="success", command=self.insert).pack(side=LEFT, padx=5)
+        tb.Button(btn_frame, text="Hapus Data", bootstyle="danger", command=self.delete).pack(side=LEFT, padx=5)
 
-        tb.Button(btn, text="Tambah Transaksi", bootstyle=SUCCESS, command=self.insert)\
-            .pack(side=LEFT, padx=5)
-        tb.Button(btn, text="Hapus", bootstyle=DANGER, command=self.delete)\
-            .pack(side=LEFT, padx=5)
+        # TABLE
+        tree_frame = tb.Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True, padx=20, pady=(0, 20))
+        
+        y_scroll = tb.Scrollbar(tree_frame, orient=VERTICAL)
+        y_scroll.pack(side=RIGHT, fill=Y)
 
         self.tree = ttk.Treeview(
-            self,
+            tree_frame,
             columns=("member", "durasi", "mulai", "berakhir"),
-            show="headings"
+            show="headings",
+            yscrollcommand=y_scroll.set,
+            style="primary.Treeview"
         )
+        y_scroll.config(command=self.tree.yview)
+
         self.tree.heading("member", text="Member")
         self.tree.heading("durasi", text="Durasi (Bulan)")
-        self.tree.heading("mulai", text="Mulai")
-        self.tree.heading("berakhir", text="Berakhir")
-
-        self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.tree.heading("mulai", text="Tanggal Mulai")
+        self.tree.heading("berakhir", text="Tanggal Berakhir")
+        
+        self.tree.column("member", width=200)
+        self.tree.column("durasi", width=100)
+        
+        self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
     # ================= LOAD COMBO =================
