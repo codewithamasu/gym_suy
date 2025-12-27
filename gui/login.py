@@ -3,8 +3,11 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from database.db import get_connection
 from utils.auth import verify_password
-from .dashboard import Dashboard              # Admin dashboard
-from .dashboard_member import DashboardMember # Member dashboard
+from .dashboard import Dashboard
+from .dashboard_member import DashboardMember
+
+from PIL import Image, ImageTk, ImageFilter
+import os
 
 
 class Login(tb.Frame):
@@ -12,74 +15,71 @@ class Login(tb.Frame):
         super().__init__(root)
         self.root = root
         self.pack(fill=BOTH, expand=True)
-        self.create_widgets()
 
-    def create_widgets(self):
-        # Container untuk centering
-        container = tb.Frame(self)
-        container.place(relx=0.5, rely=0.5, anchor=CENTER)
+        self.bg_img = None
+        self.load_background()
+        self.create_layout()
 
-        # Card Frame (Untuk efek border/bg)
-        card = tb.Frame(container, bootstyle="secondary", padding=30)
+    # ================= BACKGROUND =================
+    def load_background(self):
+        img_path = os.path.join("assets", "bg_login_2.jpg")
+
+        img = Image.open(img_path)
+        self.root.update_idletasks()
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+        img = img.resize((w, h), Image.LANCZOS)
+        img = img.filter(ImageFilter.GaussianBlur(10))
+
+        self.bg_img = ImageTk.PhotoImage(img)
+        bg = tb.Label(self, image=self.bg_img)
+        bg.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+    # ================= LAYOUT =================
+    def create_layout(self):
+        # Container utama (CENTER)
+        main = tb.Frame(self)
+        main.place(relx=0.5, rely=0.5, anchor=CENTER)
+
+        # Card Login
+        card = tb.Frame(
+            main,
+            padding=30,
+            bootstyle="light"
+        )
         card.pack()
 
-        # Title
         tb.Label(
             card,
-            text="GYM MANAGEMEN SYSTEM",
-            font=("Helvetica", 24, "bold"),
-            bootstyle="inverse-secondary"
-        ).pack(pady=(0, 20))
+            text="Gym Management System",
+            font=("Segoe UI", 20, "bold")
+        ).pack(pady=(0, 5))
 
         tb.Label(
             card,
-            text="Login Area",
-            font=("Helvetica", 12),
-            bootstyle="inverse-secondary"
+            text="Admin / Member Login",
+            font=("Segoe UI", 11),
+            foreground="#666"
         ).pack(pady=(0, 20))
 
-        # Form
-        form = tb.Frame(card, bootstyle="secondary")
-        form.pack(pady=10)
+        tb.Label(card, text="Username").pack(anchor=W)
+        self.username_entry = tb.Entry(card, width=30)
+        self.username_entry.pack(pady=(5, 15))
 
-        # Username
-        username_frame = tb.Frame(form, bootstyle="secondary")
-        username_frame.pack(fill=X, pady=5)
-        tb.Label(
-            username_frame, 
-            text="Username", 
-            bootstyle="inverse-secondary",
-            font=("Helvetica", 10)
-        ).pack(anchor=W)
-        self.username_entry = tb.Entry(username_frame, width=35, font=("Helvetica", 10))
-        self.username_entry.pack(pady=(5, 0))
+        tb.Label(card, text="Password").pack(anchor=W)
+        self.password_entry = tb.Entry(card, width=30, show="•")
+        self.password_entry.pack(pady=(5, 20))
 
-        # Password
-        password_frame = tb.Frame(form, bootstyle="secondary")
-        password_frame.pack(fill=X, pady=10)
-        tb.Label(
-            password_frame, 
-            text="Password", 
-            bootstyle="inverse-secondary",
-            font=("Helvetica", 10)
-        ).pack(anchor=W)
-        self.password_entry = tb.Entry(
-            password_frame, 
-            width=35, 
-            show="•", 
-            font=("Helvetica", 10)
-        )
-        self.password_entry.pack(pady=(5, 0))
-
-        # Button
         tb.Button(
             card,
-            text="LOGIN",
-            bootstyle="primary",
-            width=20,
+            text="Sign In",
+            bootstyle=PRIMARY,
+            width=25,
             command=self.login
-        ).pack(pady=20)
+        ).pack(pady=(5, 10))
 
+
+    # ================= LOGIN LOGIC =================
     def login(self):
         username = self.username_entry.get().strip()
         password = self.password_entry.get().strip()
@@ -102,10 +102,8 @@ class Login(tb.Frame):
             messagebox.showerror("Gagal", "Username atau password salah")
             return
 
-        # Sukses login → route berdasarkan role
         self.destroy()
         if row["role"] == "ADMIN":
             Dashboard(self.root)
         else:
-            # MEMBER: users.id == members.id
             DashboardMember(self.root, row["id"])
