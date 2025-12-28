@@ -4,9 +4,11 @@ from tkinter import ttk, messagebox
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from database.db import get_connection
+from models.transaksi_membership import TransaksiMembership
+from models.pembayaran import Pembayaran as PembayaranModel
 
 
-class Pembayaran(tb.Frame):
+class PembayaranView(tb.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack(fill=BOTH, expand=True)
@@ -15,7 +17,6 @@ class Pembayaran(tb.Frame):
         self.create_widgets()
         self.load_transaksi()
 
-    # ================= UI =================
     # ================= UI =================
     def create_widgets(self):
         # HEADER
@@ -220,52 +221,71 @@ class Pembayaran(tb.Frame):
 
     # ================= LOGIC =================
     def proses_bayar(self, win, uang_entry):
+        # ================= VALIDASI INPUT =================
         try:
             diterima = int(uang_entry.get())
         except ValueError:
             messagebox.showerror("Error", "Uang diterima harus angka")
             return
-
-        total = self.selected["total"]
-        if diterima < total:
-            messagebox.showerror("Gagal", "Uang diterima kurang")
+    
+        # ================= OOP: TRANSAKSI =================
+        transaksi = TransaksiMembership(
+            transaksi_id=self.selected["transaksi_id"],
+            member_id=None,  # tidak dibutuhkan untuk hitung
+            harga=self.selected["total"]
+        )
+    
+        pembayaran = PembayaranModel(transaksi)
+    
+        try:
+            kembalian = pembayaran.proses(diterima)
+        except ValueError as e:
+            messagebox.showerror("Gagal", str(e))
             return
-
-        kembalian = diterima - total
-
+    
+        # ================= DATABASE =================
         conn = get_connection()
         cur = conn.cursor()
-
+    
         # Double check belum dibayar
         cur.execute("""
             SELECT 1 FROM pembayaran
-            WHERE transaksi_id = ? AND jenis_transaksi = 'MEMBERSHIP'
-        """, (self.selected["transaksi_id"],))
+            WHERE transaksi_id = ? AND jenis_transaksi = ?
+        """, (
+            transaksi.transaksi_id,
+            pembayaran.jenis_transaksi
+        ))
+    
         if cur.fetchone():
             conn.close()
             messagebox.showinfo("Info", "Transaksi ini sudah lunas")
             win.destroy()
             return
-
+    
+        # Insert pembayaran
         cur.execute("""
             INSERT INTO pembayaran
-            (id, transaksi_id, jenis_transaksi, total, uang_diterima, kembalian, tanggal_bayar)
-            VALUES (?, ?, 'MEMBERSHIP', ?, ?, ?, ?)
+            (id, transaksi_id, jenis_transaksi, total,
+             uang_diterima, kembalian, tanggal_bayar)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             str(uuid.uuid4()),
-            self.selected["transaksi_id"],
-            total,
+            transaksi.transaksi_id,
+            pembayaran.jenis_transaksi,
+            pembayaran.total,
             diterima,
             kembalian,
             datetime.now().isoformat()
         ))
-
+    
         conn.commit()
         conn.close()
-
+    
+        # ================= UI FEEDBACK =================
         messagebox.showinfo(
             "Sukses",
             f"Pembayaran berhasil\nKembalian: Rp{kembalian:,}".replace(",", ".")
         )
+    
         win.destroy()
         self.load_transaksi()

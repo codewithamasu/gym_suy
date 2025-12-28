@@ -6,15 +6,15 @@ from .master_member import MasterMember
 from .master_trainer import MasterTrainer
 from .master_paket import MasterPaket
 from .transaksi_membership import TransaksiMembership
-from .absensi import Absensi
-from .pembayaran import Pembayaran
-from .transaksi_harian import TransaksiHarian
+from .pembayaran import PembayaranView
+from .transaksi_harian import TransaksiHarianView
 from .master_kelas import MasterKelas
 from .member_kelas import MemberKelas
 from .master_alat import MasterAlat
 from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from .transaksi_kelas import TransaksiKelas
 import pandas as pd
 
 class Dashboard:
@@ -190,14 +190,22 @@ class Dashboard:
         cur.execute("SELECT COUNT(*) as count FROM trainers")
         trainers = cur.fetchone()['count']
         
-        # 3. Today's Revenue (Pembayaran)
+        # 3. Today's Revenue
         today = date.today().isoformat()
-        cur.execute("SELECT SUM(total) as total FROM pembayaran WHERE tanggal_bayar = ?", (today,))
+        cur.execute("""
+            SELECT SUM(total) as total
+            FROM pembayaran
+            WHERE date(tanggal_bayar) = ?
+        """, (today,))
         res_income = cur.fetchone()['total']
         income = res_income if res_income else 0
         
-        # 4. Today's Visits (Absensi)
-        cur.execute("SELECT COUNT(*) as count FROM absensi WHERE tanggal = ?", (today,))
+        # 4. Today's Visits
+        cur.execute("""
+            SELECT COUNT(*) as count
+            FROM absensi
+            WHERE tanggal = ?
+        """, (today,))
         visits = cur.fetchone()['count']
         
         conn.close()
@@ -208,6 +216,7 @@ class Dashboard:
             "income": income,
             "visits": visits
         }
+
 
     # ================= CHARTS =================
     def get_chart_data(self):
@@ -220,7 +229,7 @@ class Dashboard:
         df_rev = pd.read_sql_query(f"""
             SELECT tanggal_bayar, SUM(total) as revenue
             FROM pembayaran
-            WHERE tanggal_bayar BETWEEN '{start_date}' AND '{end_date}'
+            WHERE date(tanggal_bayar) BETWEEN '{start_date}' AND '{end_date}'
             GROUP BY tanggal_bayar
             ORDER BY tanggal_bayar
         """, conn)
@@ -305,7 +314,7 @@ class Dashboard:
 
     def show_transaksi_harian(self):
         self.clear_content()
-        TransaksiHarian(self.content)
+        TransaksiHarianView(self.content)
 
     def show_kelas(self):
         self.clear_content()
@@ -321,11 +330,12 @@ class Dashboard:
 
     def show_transaksi_kelas(self):
         self.clear_content()
-        self.show_title("Transaksi Kelas")
+        TransaksiKelas(self.content)
+
 
     def show_pembayaran(self):
         self.clear_content()
-        Pembayaran(self.content)
+        PembayaranView(self.content)
 
     def show_absensi(self):
         self.clear_content()

@@ -5,11 +5,11 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 
 from database.db import get_connection
-from models.transaksi_harian import TransaksiHarian as TransaksiHarianModel
+from models.transaksi_kelas import TransaksiKelas
 from models.pembayaran import Pembayaran
 
 
-class TransaksiHarianView(tb.Frame):
+class TransaksiKelas(tb.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.pack(fill=BOTH, expand=True)
@@ -22,52 +22,30 @@ class TransaksiHarianView(tb.Frame):
     def create_widgets(self):
         tb.Label(
             self,
-            text="Transaksi Harian (Non Membership)",
+            text="Transaksi Kelas",
             font=("Segoe UI", 16, "bold")
         ).pack(pady=10)
 
-        # ===== FORM =====
-        form = tb.Frame(self)
-        form.pack(pady=10)
-
-        tb.Label(form, text="Nama Pengunjung").grid(row=0, column=0, sticky=W, padx=5, pady=5)
-        self.nama_entry = tb.Entry(form, width=30)
-        self.nama_entry.grid(row=0, column=1, padx=5, pady=5)
-
-
-        tb.Button(
-            form,
-            text="Tambah Transaksi",
-            bootstyle=SUCCESS,
-            command=self.insert
-        ).grid(row=2, column=1, sticky=W, padx=5, pady=10)
-
-        # ===== TABLE =====
         self.tree = ttk.Treeview(
             self,
-            columns=("nama", "hari", "total", "status"),
+            columns=("member", "kelas", "trainer", "tarif", "status"),
             show="headings"
         )
 
-        self.tree.heading("nama", text="Nama")
-        self.tree.heading("hari", text="Hari")
-        self.tree.heading("total", text="Total")
+        self.tree.heading("member", text="Member")
+        self.tree.heading("kelas", text="Kelas")
+        self.tree.heading("trainer", text="Trainer")
+        self.tree.heading("tarif", text="Tarif")
         self.tree.heading("status", text="Status")
 
         self.tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
-        # ===== BUTTON =====
         btn = tb.Frame(self)
         btn.pack(pady=10)
 
-        tb.Button(
-            btn, text="Bayar", bootstyle=PRIMARY, command=self.open_struk
-        ).pack(side=LEFT, padx=5)
-
-        tb.Button(
-            btn, text="Hapus", bootstyle=DANGER, command=self.delete
-        ).pack(side=LEFT, padx=5)
+        tb.Button(btn, text="Bayar", bootstyle=PRIMARY, command=self.open_struk)\
+            .pack(side=LEFT, padx=5)
 
     # ================= LOAD =================
     def load_data(self):
@@ -76,16 +54,23 @@ class TransaksiHarianView(tb.Frame):
         cur = conn.cursor()
 
         cur.execute("""
-            SELECT th.id, th.nama_pengunjung, th.tanggal, th.harga,
-                CASE
-                    WHEN pb.id IS NULL THEN 'BELUM BAYAR'
-                    ELSE 'LUNAS'
-                END AS status
-            FROM transaksi_harian th
+            SELECT tk.id,
+                   m.nama AS member,
+                   k.nama_kelas AS kelas,
+                   t.nama AS trainer,
+                   t.tarif_per_sesi AS tarif,
+                   CASE
+                     WHEN pb.id IS NULL THEN 'BELUM BAYAR'
+                     ELSE 'LUNAS'
+                   END AS status
+            FROM transaksi_kelas tk
+            JOIN members m ON tk.member_id = m.id
+            JOIN kelas k ON tk.kelas_id = k.id
+            JOIN trainers t ON k.trainer_id = t.id
             LEFT JOIN pembayaran pb
-            ON pb.transaksi_id = th.id
-            AND pb.jenis_transaksi = 'HARIAN'
-            ORDER BY th.tanggal DESC
+              ON pb.transaksi_id = tk.id
+             AND pb.jenis_transaksi = 'KELAS'
+            ORDER BY tk.tanggal_daftar DESC
         """)
 
         for r in cur.fetchall():
@@ -94,65 +79,17 @@ class TransaksiHarianView(tb.Frame):
                 END,
                 iid=r["id"],
                 values=(
-                    r["nama_pengunjung"],
-                    r["tanggal"],
-                    f"Rp{r['harga']:,}".replace(",", "."),
+                    r["member"],
+                    r["kelas"],
+                    r["trainer"],
+                    f"Rp{r['tarif']:,}".replace(",", "."),
                     r["status"]
                 )
             )
 
         conn.close()
 
-
-    # ================= CRUD =================
-    def insert(self):
-        nama = self.nama_entry.get().strip()
-
-        if not nama:
-            messagebox.showwarning("Validasi", "Nama pengunjung wajib diisi")
-            return
-
-        conn = get_connection()
-        cur = conn.cursor()
-
-        now = datetime.now()
-
-        cur.execute("""
-            INSERT INTO transaksi_harian
-            (id, nama_pengunjung, tanggal, harga, waktu_masuk)
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            str(uuid.uuid4()),
-            nama,
-            now.date().isoformat(),        # tanggal
-            20000,                         # harga FIX sesuai DB
-            now.time().strftime("%H:%M:%S")  # waktu_masuk
-        ))
-
-        conn.commit()
-        conn.close()
-
-        self.nama_entry.delete(0, END)
-        self.load_data()
-
-
-    def delete(self):
-        if not self.selected:
-            messagebox.showwarning("Pilih Data", "Pilih transaksi terlebih dahulu")
-            return
-
-        if not messagebox.askyesno("Konfirmasi", "Hapus transaksi ini?"):
-            return
-
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM transaksi_harian WHERE id = ?", (self.selected["id"],))
-        conn.commit()
-        conn.close()
-
-        self.selected = None
-        self.load_data()
-
+    # ================= EVENT =================
     def on_select(self, _):
         sel = self.tree.selection()
         if not sel:
@@ -160,18 +97,16 @@ class TransaksiHarianView(tb.Frame):
             return
 
         iid = sel[0]
-        nama, tanggal, harga, status = self.tree.item(iid, "values")
+        values = self.tree.item(iid, "values")
 
         self.selected = {
             "id": iid,
-            "nama": nama,
-            "tanggal": tanggal,
-            "harga": int(
-                harga.replace("Rp", "").replace(".", "")
-            ),
-            "status": status
+            "member": values[0],
+            "kelas": values[1],
+            "trainer": values[2],
+            "tarif": int(values[3].replace("Rp", "").replace(".", "")),
+            "status": values[4]
         }
-
 
     # ================= STRUK =================
     def open_struk(self):
@@ -184,21 +119,20 @@ class TransaksiHarianView(tb.Frame):
             return
 
         win = tb.Toplevel(self)
-        win.title("Struk Pembayaran Harian")
+        win.title("Struk Pembayaran Kelas")
         win.geometry("400x350")
         win.transient(self)
         win.grab_set()
 
         tb.Label(win, text="STRUK PEMBAYARAN", font=("Segoe UI", 14, "bold")).pack(pady=10)
 
-        transaksi = TransaksiHarianModel(
+        transaksi = TransaksiKelas(
             transaksi_id=self.selected["id"],
             member_id=None,
-            harga=self.selected["harga"]
+            tarif=self.selected["tarif"]
         )
 
         pembayaran = Pembayaran(transaksi)
-
 
         info = tb.Frame(win)
         info.pack(padx=10, pady=10, fill=X)
@@ -209,8 +143,9 @@ class TransaksiHarianView(tb.Frame):
             tb.Label(f, text=label, width=15, anchor=W).pack(side=LEFT)
             tb.Label(f, text=value, anchor=W).pack(side=LEFT)
 
-        row("Nama", self.selected["nama"])
-        row("Harga", str(self.selected["harga"]))
+        row("Member", self.selected["member"])
+        row("Kelas", self.selected["kelas"])
+        row("Trainer", self.selected["trainer"])
         row("Total", f"Rp{pembayaran.total:,}".replace(",", "."))
 
         tb.Separator(win).pack(fill=X, padx=10, pady=10)
@@ -282,7 +217,7 @@ class TransaksiHarianView(tb.Frame):
 
         messagebox.showinfo(
             "Sukses",
-            f"Pembayaran berhasil\nKembalian: Rp{kembalian:,}".replace(",", ".")
+            f"Pembayaran kelas berhasil\nKembalian: Rp{kembalian:,}".replace(",", ".")
         )
 
         win.destroy()

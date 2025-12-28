@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from database.db import get_connection
+from models.pembayaran import Pembayaran
 
 
 class TransaksiMembership(tb.Frame):
@@ -16,7 +17,6 @@ class TransaksiMembership(tb.Frame):
         self.load_combo()
         self.load_data()
 
-    # ================= UI =================
     # ================= UI =================
     def create_widgets(self):
         # HEADER
