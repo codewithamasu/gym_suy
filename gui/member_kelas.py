@@ -101,6 +101,7 @@ class MemberKelas(tb.Frame):
     def insert(self):
         member_name = self.member_combo.get()
         kelas_label = self.kelas_combo.get()
+
         if not member_name or not kelas_label:
             messagebox.showwarning("Validasi", "Pilih member dan kelas")
             return
@@ -111,33 +112,31 @@ class MemberKelas(tb.Frame):
         conn = get_connection()
         cur = conn.cursor()
 
-        # Cek kapasitas
-        cur.execute("""
-            SELECT k.kapasitas, COUNT(mk.id) AS terdaftar
-            FROM kelas k
-            LEFT JOIN member_kelas mk ON mk.kelas_id = k.id
-            WHERE k.id = ?
-            GROUP BY k.id
-        """, (kelas_id,))
-        row = cur.fetchone()
-        if row and row["terdaftar"] >= row["kapasitas"]:
-            conn.close()
-            messagebox.showerror("Penuh", "Kapasitas kelas sudah penuh")
-            return
-
         try:
+            # 1️⃣ INSERT PENDAFTARAN KELAS
+            mk_id = str(uuid.uuid4())
             cur.execute("""
                 INSERT INTO member_kelas (id, member_id, kelas_id, tanggal_daftar)
-                VALUES (?, ?, ?, ?)
-            """, (str(uuid.uuid4()), member_id, kelas_id, date.today().isoformat()))
+                VALUES (?, ?, ?, DATE('now'))
+            """, (mk_id, member_id, kelas_id))
+
+            # 2️⃣ INSERT TRANSAKSI KELAS (UNTUK PEMBAYARAN)
+            tk_id = str(uuid.uuid4())
+            cur.execute("""
+                INSERT INTO transaksi_kelas (id, member_id, kelas_id, tanggal_daftar)
+                VALUES (?, ?, ?, DATE('now'))
+            """, (tk_id, member_id, kelas_id))
+
             conn.commit()
+
         except Exception as e:
             conn.rollback()
             messagebox.showerror("Gagal", str(e))
+            return
         finally:
             conn.close()
 
-        self.load_kelas()
+        messagebox.showinfo("Sukses", "Member berhasil didaftarkan ke kelas")
         self.load_data()
 
     def delete(self):

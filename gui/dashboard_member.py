@@ -287,45 +287,82 @@ class DashboardMember(tb.Frame):
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT 1 FROM absensi WHERE member_id = ? AND tanggal = ?", (self.member_id, today))
+        # CEK: apakah masih ada sesi yang BELUM clock out hari ini
+        cur.execute("""
+            SELECT 1
+            FROM absensi
+            WHERE member_id = ?
+            AND tanggal = ?
+            AND jam_keluar IS NULL
+        """, (self.member_id, today))
+
         if cur.fetchone():
-            messagebox.showinfo("Info", "You have already clocked in today.")
+            messagebox.showinfo(
+                "Info",
+                "You must clock out before clocking in again."
+            )
             conn.close()
             return
 
         now = datetime.now()
         cur.execute("""
-            INSERT INTO absensi (id, member_id, tanggal, jam_masuk)
-            VALUES (?, ?, ?, ?)
-        """, (f"ABS-{now.timestamp()}", self.member_id, today, now.strftime("%H:%M:%S")))
-        
+            INSERT INTO absensi (id, member_id, tanggal, jam_masuk, jam_keluar)
+            VALUES (?, ?, ?, ?, NULL)
+        """, (
+            f"ABS-{now.timestamp()}",
+            self.member_id,
+            today,
+            now.strftime("%H:%M:%S")
+        ))
+
         conn.commit()
         conn.close()
-        messagebox.showinfo("Success", f"Clock In Successful at {now.strftime('%H:%M:%S')}")
-        self.show_overview() # Refresh
+
+        messagebox.showinfo(
+            "Success",
+            f"Clock In Successful at {now.strftime('%H:%M:%S')}"
+        )
+        self.show_overview()
 
     def clock_out(self):
         today = date.today().isoformat()
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, jam_keluar FROM absensi WHERE member_id = ? AND tanggal = ?", (self.member_id, today))
+        # Ambil sesi AKTIF terakhir hari ini
+        cur.execute("""
+            SELECT id
+            FROM absensi
+            WHERE member_id = ?
+            AND tanggal = ?
+            AND jam_keluar IS NULL
+            ORDER BY jam_masuk DESC
+            LIMIT 1
+        """, (self.member_id, today))
+
         row = cur.fetchone()
-        
+
         if not row:
-            messagebox.showwarning("Info", "You haven't clocked in today yet.")
-            conn.close()
-            return
-            
-        if row["jam_keluar"]:
-            messagebox.showinfo("Info", "You have already clocked out.")
+            messagebox.showwarning(
+                "Info",
+                "No active session found. Please clock in first."
+            )
             conn.close()
             return
 
         now_str = datetime.now().strftime("%H:%M:%S")
-        cur.execute("UPDATE absensi SET jam_keluar = ? WHERE id = ?", (now_str, row["id"]))
-        
+        cur.execute("""
+            UPDATE absensi
+            SET jam_keluar = ?
+            WHERE id = ?
+        """, (now_str, row["id"]))
+
         conn.commit()
         conn.close()
-        messagebox.showinfo("Success", f"Clock Out Successful at {now_str}")
-        self.show_overview() # Refresh
+
+        messagebox.showinfo(
+            "Success",
+            f"Clock Out Successful at {now_str}"
+        )
+        self.show_overview()
+

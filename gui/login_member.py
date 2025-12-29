@@ -5,7 +5,6 @@ from ttkbootstrap.constants import *
 from database.db import get_connection
 from .dashboard_member import DashboardMember
 
-
 class LoginMember(tb.Frame):
     def __init__(self, root):
         super().__init__(root)

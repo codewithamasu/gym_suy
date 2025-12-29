@@ -107,6 +107,20 @@ class MasterAlat(tb.Frame):
             messagebox.showwarning("Validasi", "Nama alat wajib diisi")
             return
 
+        if not self.is_nama_valid(nama):
+            messagebox.showwarning(
+                "Validasi",
+                "Nama alat tidak boleh mengandung angka atau simbol"
+            )
+            return
+
+        if self.is_nama_exists(nama):
+            messagebox.showwarning(
+                "Validasi",
+                "Nama alat sudah terdaftar"
+            )
+            return
+
         conn = get_connection()
         cursor = conn.cursor()
         try:
@@ -127,6 +141,7 @@ class MasterAlat(tb.Frame):
 
         self.load_data()
         self.reset_form()
+
 
     def update(self):
         if not self.selected_id:
@@ -202,3 +217,28 @@ class MasterAlat(tb.Frame):
         self.selected_id = None
         self.nama_entry.delete(0, END)
         self.kondisi_combo.set("Bagus")
+
+    #============= HELPER =============
+    def is_nama_valid(self, nama):
+        return nama.replace(" ", "").isalpha()
+
+
+    def is_nama_exists(self, nama, exclude_id=None):
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        if exclude_id:
+            cursor.execute("""
+                SELECT 1 FROM alat_gym
+                WHERE LOWER(nama_alat) = LOWER(?) AND id != ?
+            """, (nama, exclude_id))
+        else:
+            cursor.execute("""
+                SELECT 1 FROM alat_gym
+                WHERE LOWER(nama_alat) = LOWER(?)
+            """, (nama,))
+
+        exists = cursor.fetchone() is not None
+        conn.close()
+        return exists
+
