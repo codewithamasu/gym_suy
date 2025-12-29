@@ -17,7 +17,6 @@ class MasterMember(tb.Frame):
         self.load_data()
 
     # ================= UI =================
-    # ================= UI =================
     def create_widgets(self):
         # HEADER
         header_frame = tb.Frame(self)
@@ -47,6 +46,12 @@ class MasterMember(tb.Frame):
         self.umur_entry.grid(row=0, column=3, sticky=EW, padx=10)
 
         # Row 2
+        tb.Label(form_frame, text="No. Telepon:").grid(row=1, column=2, sticky=W, padx=10, pady=10)
+        self.telp_entry = tb.Entry(form_frame)
+        self.telp_entry.grid(row=1, column=3, sticky=EW, padx=10)
+
+
+        # Row 3
         tb.Label(form_frame, text="Jenis Kelamin:").grid(row=1, column=0, sticky=W, padx=10, pady=10)
         self.jk_combo = tb.Combobox(
             form_frame,
@@ -78,16 +83,16 @@ class MasterMember(tb.Frame):
 
         self.tree = ttk.Treeview(
             tree_frame,
-            columns=("nama", "umur", "jk"),
+            columns=("nama", "umur", "jk", "telp"),
             show="headings",
-            yscrollcommand=y_scroll.set,
-            style="info.Treeview" # Use boootstyle
+            yscrollcommand=y_scroll.set
         )
-        y_scroll.config(command=self.tree.yview)
 
         self.tree.heading("nama", text="Nama Member")
         self.tree.heading("umur", text="Umur")
         self.tree.heading("jk", text="Jenis Kelamin")
+        self.tree.heading("telp", text="No. Telepon")
+
 
         self.tree.pack(fill=BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
@@ -128,45 +133,75 @@ class MasterMember(tb.Frame):
                 "",
                 END,
                 iid=row["id"],
-                values=(row["nama"], row["umur"], row["jenis_kelamin"])
+                values=(row["nama"], row["umur"], row["jenis_kelamin"], row["no_telp"])
             )
+
 
     def insert(self):
         nama = self.nama_entry.get().strip()
         umur = self.umur_entry.get().strip()
         jk = self.jk_combo.get()
+        telp = self.telp_entry.get().strip()
 
-        if not nama or not umur or not jk:
+        # ===== Validasi kosong =====
+        if not nama or not umur or not jk or not telp:
             messagebox.showwarning("Validasi", "Semua field wajib diisi")
             return
 
+        # ===== Nama tidak boleh angka =====
+        if any(char.isdigit() for char in nama):
+            messagebox.showwarning("Validasi", "Nama tidak boleh mengandung angka")
+            return
+
+        # ===== Umur harus angka & tidak negatif =====
         try:
             umur = int(umur)
+            if umur < 0:
+                raise ValueError
         except ValueError:
-            messagebox.showwarning("Validasi", "Umur harus angka")
+            messagebox.showwarning("Validasi", "Umur harus angka dan tidak boleh negatif")
+            return
+
+        # ===== Validasi No Telp Indonesia =====
+        if not re.match(r"^\+62[0-9]{9,13}$", telp):
+            messagebox.showwarning(
+                "Validasi",
+                "No. Telepon harus diawali +62 dan berisi angka yang valid"
+            )
             return
 
         conn = get_connection()
         cursor = conn.cursor()
 
+        # ===== Cek duplikasi nama atau no telp =====
+        cursor.execute("""
+            SELECT 1 FROM members
+            WHERE nama = ? OR no_telp = ?
+        """, (nama, telp))
+
+        if cursor.fetchone():
+            conn.close()
+            messagebox.showerror(
+                "Ditolak",
+                "Nama atau No. Telepon sudah terdaftar"
+            )
+            return
+
         try:
-            # 1️⃣ Generate member ID
             member_id = MasterMember.generate_member_id(conn, nama)
 
-            # 2️⃣ Insert ke members
             cursor.execute("""
-                INSERT INTO members (id, nama, umur, jenis_kelamin)
-                VALUES (?, ?, ?, ?)
-            """, (member_id, nama, umur, jk))
+                INSERT INTO members (id, nama, umur, jenis_kelamin, no_telp)
+                VALUES (?, ?, ?, ?, ?)
+            """, (member_id, nama, umur, jk, telp))
 
-            # 3️⃣ Auto-create user account
-            default_password = "123456"   # bisa kamu ganti
+            default_password = "123456"
             cursor.execute("""
                 INSERT INTO users (id, username, password, role)
                 VALUES (?, ?, ?, 'MEMBER')
             """, (
-                member_id,                 # id sama
-                member_id,                 # username = member_id
+                member_id,
+                member_id,
                 hash_password(default_password)
             ))
 
@@ -182,12 +217,12 @@ class MasterMember(tb.Frame):
         except Exception as e:
             conn.rollback()
             messagebox.showerror("Error", str(e))
-
         finally:
             conn.close()
 
         self.load_data()
         self.reset_form()
+
 
 
     def update(self):

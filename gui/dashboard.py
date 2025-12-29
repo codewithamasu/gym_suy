@@ -77,14 +77,8 @@ class Dashboard:
         self.create_nav_button("Daily Log", "outline-primary", self.show_transaksi_harian)
         self.create_nav_button("Attendance", "outline-primary", self.show_absensi)
 
-        # Logout
-        tb.Button(
-            self.sidebar, 
-            text="LOGOUT", 
-            bootstyle="danger-outline", 
-            width=20,
-            command=self.logout
-        ).pack(side=BOTTOM, pady=30)
+        # Logout Button
+        self.create_nav_button("Logout", "danger", self.logout)
 
     def create_menu_label(self, text):
         tb.Label(
