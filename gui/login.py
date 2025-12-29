@@ -118,3 +118,4 @@ class Login(tb.Frame):
             Dashboard(self.root)
         else:
             DashboardMember(self.root, user.id)
+    

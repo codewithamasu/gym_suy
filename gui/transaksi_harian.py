@@ -111,6 +111,19 @@ class TransaksiHarianView(tb.Frame):
         if not nama:
             messagebox.showwarning("Validasi", "Nama pengunjung wajib diisi")
             return
+        if nama.isdigit() or any(char.isdigit() for char in nama):
+            messagebox.showwarning("Validasi", "Nama pengunjung tidak boleh angka")
+            return
+
+        today = datetime.now().date().isoformat()
+
+        # ===== VALIDASI DUPLIKAT =====
+        if self.is_transaksi_harian_exists(nama, today):
+            messagebox.showwarning(
+                "Validasi",
+                "Pengunjung ini sudah terdaftar hari ini"
+            )
+            return
 
         conn = get_connection()
         cur = conn.cursor()
@@ -124,9 +137,9 @@ class TransaksiHarianView(tb.Frame):
         """, (
             str(uuid.uuid4()),
             nama,
-            now.date().isoformat(),        # tanggal
-            20000,                         # harga FIX sesuai DB
-            now.time().strftime("%H:%M:%S")  # waktu_masuk
+            today,
+            20000,
+            now.time().strftime("%H:%M:%S")
         ))
 
         conn.commit()
@@ -134,7 +147,6 @@ class TransaksiHarianView(tb.Frame):
 
         self.nama_entry.delete(0, END)
         self.load_data()
-
 
     def delete(self):
         if not self.selected:
@@ -287,3 +299,19 @@ class TransaksiHarianView(tb.Frame):
 
         win.destroy()
         self.load_data()
+
+    def is_transaksi_harian_exists(self, nama, tanggal):
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT 1
+            FROM transaksi_harian
+            WHERE LOWER(nama_pengunjung) = LOWER(?)
+            AND tanggal = ?
+        """, (nama, tanggal))
+
+        exists = cur.fetchone() is not None
+        conn.close()
+        return exists
+

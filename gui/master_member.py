@@ -133,7 +133,7 @@ class MasterMember(tb.Frame):
                 "",
                 END,
                 iid=row["id"],
-                values=(row["nama"], row["umur"], row["jenis_kelamin"], row["no_telp"])
+                values=(row["nama"], row["umur"], row["jenis_kelamin"], row["no_telepon"])
             )
 
 
@@ -156,7 +156,7 @@ class MasterMember(tb.Frame):
         # ===== Umur harus angka & tidak negatif =====
         try:
             umur = int(umur)
-            if umur < 0:
+            if umur < 0 or umur == 0:
                 raise ValueError
         except ValueError:
             messagebox.showwarning("Validasi", "Umur harus angka dan tidak boleh negatif")
@@ -176,7 +176,7 @@ class MasterMember(tb.Frame):
         # ===== Cek duplikasi nama atau no telp =====
         cursor.execute("""
             SELECT 1 FROM members
-            WHERE nama = ? OR no_telp = ?
+            WHERE nama = ? OR no_telepon = ?
         """, (nama, telp))
 
         if cursor.fetchone():
@@ -191,7 +191,7 @@ class MasterMember(tb.Frame):
             member_id = MasterMember.generate_member_id(conn, nama)
 
             cursor.execute("""
-                INSERT INTO members (id, nama, umur, jenis_kelamin, no_telp)
+                INSERT INTO members (id, nama, umur, jenis_kelamin, no_telepon)
                 VALUES (?, ?, ?, ?, ?)
             """, (member_id, nama, umur, jk, telp))
 
@@ -297,12 +297,17 @@ class MasterMember(tb.Frame):
         self.umur_entry.delete(0, END)
         self.umur_entry.insert(0, values[1])
 
+        self.telp_entry.delete(0, END)
+        self.telp_entry.insert(0, values[3])
+
+
         self.jk_combo.set(values[2])
 
     def reset_form(self):
         self.selected_id = None
         self.nama_entry.delete(0, END)
         self.umur_entry.delete(0, END)
+        self.telp_entry.delete(0, END)
         self.jk_combo.set("L")
 
     
