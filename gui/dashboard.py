@@ -12,6 +12,7 @@ from .master_kelas import MasterKelas
 from .member_kelas import MemberKelas
 from .master_alat import MasterAlat
 from datetime import date, datetime, timedelta
+from utils.ui import set_app_icon
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from .transaksi_kelas import TransaksiKelas
@@ -21,7 +22,7 @@ from utils.session import SessionManager
 class Dashboard:
     def __init__(self, root):
         self.root = root
-        
+        set_app_icon(self.root)
         # Main Layout container
         self.main_container = tb.Frame(root)
         self.main_container.pack(fill=BOTH, expand=True)

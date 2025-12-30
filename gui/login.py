@@ -8,6 +8,7 @@ from models.admin import Admin
 from models.member import Member
 from utils.session import SessionManager
 from PIL import Image, ImageTk, ImageFilter
+from utils.ui import set_app_icon
 import os
 
 
@@ -15,6 +16,7 @@ class Login(tb.Frame):
     def __init__(self, root):
         super().__init__(root)
         self.root = root
+        set_app_icon(self.root)
         self.pack(fill=BOTH, expand=True)
 
         self.bg_img = None
