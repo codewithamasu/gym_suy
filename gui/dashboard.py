@@ -259,8 +259,16 @@ class Dashboard:
         # --- Chart 1: Revenue (Line) ---
         fig1, ax1 = plt.subplots(figsize=(5, 3), dpi=100)
         if not df_rev.empty:
+            # ensure datetime dtype so we can format ticks compactly
+            df_rev['tanggal_bayar'] = pd.to_datetime(df_rev['tanggal_bayar'])
             ax1.plot(df_rev['tanggal_bayar'], df_rev['revenue'], marker='o', color='#3498db', linewidth=2)
             ax1.fill_between(df_rev['tanggal_bayar'], df_rev['revenue'], color='#3498db', alpha=0.1)
+            # format x-axis as DD-MM-YYYY to keep labels short
+            import matplotlib.dates as mdates
+            locator = mdates.AutoDateLocator()
+            formatter = mdates.DateFormatter('%d-%m-%Y')
+            ax1.xaxis.set_major_locator(locator)
+            ax1.xaxis.set_major_formatter(formatter)
         ax1.set_title("Revenue Last 7 Days", fontsize=10, fontweight='bold', pad=10)
         ax1.tick_params(axis='x', rotation=45, labelsize=8)
         ax1.tick_params(axis='y', labelsize=8)

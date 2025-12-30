@@ -35,11 +35,34 @@ def seed_members(cursor):
         ("Eko", 30, "L"),
     ]
 
-    for nama, umur, jk in members:
-        cursor.execute("""
-        INSERT OR IGNORE INTO members (id, nama, umur, jenis_kelamin)
-        VALUES (?, ?, ?, ?)
-        """, (str(uuid.uuid4()), nama, umur, jk))
+    # helper to find next available phone number
+    def next_phone(start_int):
+        while True:
+            phone = f"+62{start_int}"
+            cur = cursor.execute("SELECT 1 FROM members WHERE no_telepon = ?", (phone,)).fetchone()
+            if not cur:
+                return phone
+            start_int += 1
+
+    base = 8100000000
+    for idx, (nama, umur, jk) in enumerate(members):
+        phone = next_phone(base + idx)
+
+        # if member with same name exists, update its phone and other fields
+        existing = cursor.execute("SELECT id FROM members WHERE nama = ?", (nama,)).fetchone()
+        if existing:
+            cursor.execute(
+                """
+                UPDATE members SET umur = ?, jenis_kelamin = ?, no_telepon = ?
+                WHERE id = ?
+                """,
+                (umur, jk, phone, existing["id"])
+            )
+        else:
+            cursor.execute("""
+            INSERT OR IGNORE INTO members (id, nama, umur, jenis_kelamin, no_telepon)
+            VALUES (?, ?, ?, ?, ?)
+            """, (str(uuid.uuid4()), nama, umur, jk, phone))
 
 
 def seed_trainers(cursor):
@@ -49,11 +72,33 @@ def seed_trainers(cursor):
         ("Fajar", "Cardio", 130000),
     ]
 
-    for nama, spesialisasi, tarif in trainers:
-        cursor.execute("""
-        INSERT OR IGNORE INTO trainers (id, nama, spesialisasi, tarif_per_sesi)
-        VALUES (?, ?, ?, ?)
-        """, (str(uuid.uuid4()), nama, spesialisasi, tarif))
+    # helper to find next available phone number for trainers (different range)
+    def next_phone_tr(start_int):
+        while True:
+            phone = f"+62{start_int}"
+            cur = cursor.execute("SELECT 1 FROM trainers WHERE no_telepon = ?", (phone,)).fetchone()
+            if not cur:
+                return phone
+            start_int += 1
+
+    base_tr = 8200000000
+    for idx, (nama, spesialisasi, tarif) in enumerate(trainers):
+        phone = next_phone_tr(base_tr + idx)
+
+        existing = cursor.execute("SELECT id FROM trainers WHERE nama = ?", (nama,)).fetchone()
+        if existing:
+            cursor.execute(
+                """
+                UPDATE trainers SET spesialisasi = ?, tarif_per_sesi = ?, no_telepon = ?
+                WHERE id = ?
+                """,
+                (spesialisasi, tarif, phone, existing["id"])
+            )
+        else:
+            cursor.execute("""
+            INSERT OR IGNORE INTO trainers (id, nama, spesialisasi, no_telepon, tarif_per_sesi)
+            VALUES (?, ?, ?, ?, ?)
+            """, (str(uuid.uuid4()), nama, spesialisasi, phone, tarif))
 
 
 def seed_paket(cursor):

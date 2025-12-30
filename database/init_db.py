@@ -37,6 +37,16 @@ def init_db():
     )
     """)
 
+    # Trigger: when a member is deleted, remove corresponding users row (if any)
+    cursor.execute("DROP TRIGGER IF EXISTS trg_delete_user_on_member_delete")
+    cursor.execute("""
+    CREATE TRIGGER trg_delete_user_on_member_delete
+    AFTER DELETE ON members
+    BEGIN
+        DELETE FROM users WHERE id = OLD.id;
+    END;
+    """)
+
     # ================= TRAINER =================
     cursor.execute("""
         CREATE TABLE IF NOT EXIST trainers (
