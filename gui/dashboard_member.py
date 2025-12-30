@@ -3,11 +3,13 @@ from tkinter import ttk, messagebox
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from database.db import get_connection
+from utils.ui import set_app_icon
 
 class DashboardMember(tb.Frame):
     def __init__(self, root, member_id):
         super().__init__(root)
         self.root = root
+        set_app_icon(self.root)
         self.member_id = member_id
         self.pack(fill=BOTH, expand=True)
 

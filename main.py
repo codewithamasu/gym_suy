@@ -1,15 +1,14 @@
 from tkinter import PhotoImage
 import ttkbootstrap as ttk
 from gui.login import Login
+from utils.ui import set_app_icon
 import os
 
 if __name__ == "__main__":
     app = ttk.Window(themename="cosmo")
     app.title("Gym Management System")
     app.geometry("1000x800")
-
-    icon_path = os.path.join("assets", "app-icon.png")
-    app.iconphoto(True, PhotoImage(file=icon_path))
+    set_app_icon(app)
 
     app.position_center()
     app.resizable(False, False)
