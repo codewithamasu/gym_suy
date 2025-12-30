@@ -140,17 +140,17 @@ class MasterTrainer(tb.Frame):
         conn = get_connection()
         cur = conn.cursor()
 
-        # ===== Cek duplikasi nama atau telp =====
+        # ===== Cek duplikasi nomor telepon =====
         cur.execute("""
             SELECT 1 FROM trainers
-            WHERE nama = ? OR no_telepon = ?
-        """, (nama, telp))
+            WHERE no_telepon = ?
+        """, (telp,))
 
         if cur.fetchone():
             conn.close()
             messagebox.showerror(
                 "Ditolak",
-                "Nama atau No. Telepon sudah terdaftar"
+                "No. Telepon sudah terdaftar"
             )
             return
 
@@ -193,15 +193,15 @@ class MasterTrainer(tb.Frame):
         conn = get_connection()
         cur = conn.cursor()
 
-        # Duplikasi (kecuali dirinya sendiri)
+        # Duplikasi nomor telepon (kecuali dirinya sendiri)
         cur.execute("""
             SELECT 1 FROM trainers
-            WHERE (nama = ? OR no_telepon = ?) AND id != ?
-        """, (nama, telp, self.selected_id))
+            WHERE no_telepon = ? AND id != ?
+        """, (telp, self.selected_id))
 
         if cur.fetchone():
             conn.close()
-            messagebox.showerror("Ditolak", "Nama atau No. Telepon sudah digunakan")
+            messagebox.showerror("Ditolak", "No. Telepon sudah digunakan")
             return
 
         cur.execute("""

@@ -6,6 +6,7 @@ from .dashboard import Dashboard
 from .dashboard_member import DashboardMember
 from models.admin import Admin
 from models.member import Member
+from utils.session import SessionManager
 from PIL import Image, ImageTk, ImageFilter
 import os
 
@@ -113,6 +114,9 @@ class Login(tb.Frame):
 
         # ================= ROUTING =================
         self.destroy()
+
+        # Set Session (Encapsulation Setter)
+        SessionManager.set_user(user)
 
         if user.role == "ADMIN":
             Dashboard(self.root)

@@ -173,17 +173,17 @@ class MasterMember(tb.Frame):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # ===== Cek duplikasi nama atau no telp =====
+        # ===== Cek duplikasi nomor telepon =====
         cursor.execute("""
             SELECT 1 FROM members
-            WHERE nama = ? OR no_telepon = ?
-        """, (nama, telp))
+            WHERE no_telepon = ?
+        """, (telp,))
 
         if cursor.fetchone():
             conn.close()
             messagebox.showerror(
                 "Ditolak",
-                "Nama atau No. Telepon sudah terdaftar"
+                "No. Telepon sudah terdaftar"
             )
             return
 
@@ -230,20 +230,71 @@ class MasterMember(tb.Frame):
             messagebox.showwarning("Pilih Data", "Pilih member terlebih dahulu")
             return
 
+        # Collect and validate inputs (same rules as insert)
+        nama = self.nama_entry.get().strip()
+        umur = self.umur_entry.get().strip()
+        jk = self.jk_combo.get()
+        telp = self.telp_entry.get().strip()
+
+        if not nama or not umur or not jk or not telp:
+            messagebox.showwarning("Validasi", "Semua field wajib diisi")
+            return
+
+        if any(char.isdigit() for char in nama):
+            messagebox.showwarning("Validasi", "Nama tidak boleh mengandung angka")
+            return
+
+        try:
+            umur = int(umur)
+            if umur < 0 or umur == 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("Validasi", "Umur harus angka dan tidak boleh negatif")
+            return
+
+        if not re.match(r"^\+62[0-9]{9,13}$", telp):
+            messagebox.showwarning(
+                "Validasi",
+                "No. Telepon harus diawali +62 dan berisi angka yang valid"
+            )
+            return
+
         conn = get_connection()
         cursor = conn.cursor()
+
+        # Check duplicate phone excluding current member
         cursor.execute("""
-            UPDATE members
-            SET nama = ?, umur = ?, jenis_kelamin = ?
-            WHERE id = ?
-        """, (
-            self.nama_entry.get(),
-            self.umur_entry.get(),
-            self.jk_combo.get(),
-            self.selected_id
-        ))
-        conn.commit()
-        conn.close()
+            SELECT id FROM members
+            WHERE no_telepon = ? AND id != ?
+        """, (telp, self.selected_id))
+
+        if cursor.fetchone():
+            conn.close()
+            messagebox.showerror(
+                "Ditolak",
+                "No. Telepon sudah terdaftar untuk member lain"
+            )
+            return
+
+        try:
+            cursor.execute("""
+                UPDATE members
+                SET nama = ?, umur = ?, jenis_kelamin = ?, no_telepon = ?
+                WHERE id = ?
+            """, (
+                nama,
+                umur,
+                jk,
+                telp,
+                self.selected_id
+            ))
+            conn.commit()
+            messagebox.showinfo("Sukses", "Data member berhasil diperbarui")
+        except Exception as e:
+            conn.rollback()
+            messagebox.showerror("Error", str(e))
+        finally:
+            conn.close()
 
         self.load_data()
         self.reset_form()

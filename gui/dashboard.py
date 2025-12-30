@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from .transaksi_kelas import TransaksiKelas
 import pandas as pd
+from utils.session import SessionManager
 
 class Dashboard:
     def __init__(self, root):
@@ -57,6 +58,17 @@ class Dashboard:
             bootstyle="secondary"
         ).pack(anchor=W)
 
+        # Show Current User (Encapsulation Getter)
+        current_user = SessionManager.get_user()
+        user_display = current_user.username if current_user else "Guest"
+        
+        tb.Label(
+            header,
+            text=f"Hi, {user_display}",
+            font=("Helvetica", 10, "italic"),
+            bootstyle="success"
+        ).pack(anchor=W, pady=(5,0))
+
         # Navigation Menu
         # Group: Main
         self.create_menu_label("MAIN MENU")
@@ -65,6 +77,7 @@ class Dashboard:
         self.create_nav_button("Classes", "outline-primary", self.show_kelas)
         self.create_nav_button("Trainers", "outline-primary", self.show_trainer)
         self.create_nav_button("Gym Tools", "outline-primary", self.show_alat)
+        self.create_nav_button("Packages", "outline-primary", self.show_paket)
 
         # Group: Transaction
         self.create_menu_label("TRANSACTIONS")
@@ -99,6 +112,7 @@ class Dashboard:
         btn.pack(pady=2, padx=10)
 
     def logout(self):
+        SessionManager.clear_session()
         self.main_container.destroy()
         from .login import Login
         Login(self.root)
@@ -259,8 +273,16 @@ class Dashboard:
         # --- Chart 1: Revenue (Line) ---
         fig1, ax1 = plt.subplots(figsize=(5, 3), dpi=100)
         if not df_rev.empty:
+            # ensure datetime dtype so we can format ticks compactly
+            df_rev['tanggal_bayar'] = pd.to_datetime(df_rev['tanggal_bayar'])
             ax1.plot(df_rev['tanggal_bayar'], df_rev['revenue'], marker='o', color='#3498db', linewidth=2)
             ax1.fill_between(df_rev['tanggal_bayar'], df_rev['revenue'], color='#3498db', alpha=0.1)
+            # format x-axis as DD-MM-YYYY to keep labels short
+            import matplotlib.dates as mdates
+            locator = mdates.AutoDateLocator()
+            formatter = mdates.DateFormatter('%d-%m-%Y')
+            ax1.xaxis.set_major_locator(locator)
+            ax1.xaxis.set_major_formatter(formatter)
         ax1.set_title("Revenue Last 7 Days", fontsize=10, fontweight='bold', pad=10)
         ax1.tick_params(axis='x', rotation=45, labelsize=8)
         ax1.tick_params(axis='y', labelsize=8)

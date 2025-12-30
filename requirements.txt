@@ -1,3 +1,5 @@
 ttkbootstrap>=1.10.1
 bcrypt>=4.1.2
+matplotlib>=3.8.1
+pandas>=2.2.2
 
