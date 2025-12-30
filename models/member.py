@@ -11,3 +11,11 @@ class Member(User):
 
     def is_active(self, today):
         return today <= self.__membership_end
+
+    def get_welcome_message(self):
+        return f"Hi Member {self.username}! Ready to workout today?"
+
+    def get_role_description(self):
+        # Override: Menjelaskan hak akses Member
+        status = "Aktif" if self.__membership_end else "Non-Aktif"
+        return f"Member Gym: Akses Fasilitas & Kelas (Status: {status})"

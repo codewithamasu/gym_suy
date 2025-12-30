@@ -27,3 +27,11 @@ class User:
             plain_password.encode("utf-8"),
             self.__password_hash.encode("utf-8")
         )
+
+    # ================= POLYMORPHISM =================
+    def get_role_description(self):
+        """
+        Contoh Polimorfisme pada Business Logic (Model).
+        Setiap role memberikan deskripsi hak akses yang berbeda.
+        """
+        return "Pengguna Umum"

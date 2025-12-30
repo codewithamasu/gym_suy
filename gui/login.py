@@ -112,6 +112,12 @@ class Login(tb.Frame):
             messagebox.showerror("Gagal", "Username atau password salah")
             return
 
+        # [POLYMORPHISM DEMO]
+        # Panggil method bisnis yang sama, output berbeda tergantung objek (Admin/Member)
+        # Logikanya ada di dalam Model, bukan di GUI.
+        role_desc = user.get_role_description() 
+        messagebox.showinfo("Login Berhasil", f"Selamat Datang, {user.username}!\n\n{role_desc}")
+
         # ================= ROUTING =================
         self.destroy()
 

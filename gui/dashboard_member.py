@@ -287,6 +287,27 @@ class DashboardMember(tb.Frame):
         conn = get_connection()
         cur = conn.cursor()
 
+        # [VALIDATION NEW] Check is there any active membership
+        cur.execute("""
+            SELECT tanggal_berakhir
+            FROM transaksi_membership
+            WHERE member_id = ?
+            ORDER BY tanggal_mulai DESC
+            LIMIT 1
+        """, (self.member_id,))
+        trx = cur.fetchone()
+
+        if not trx:
+            messagebox.showerror("Access Denied", "Member dulu Woi.")
+            conn.close()
+            return
+        
+        expire_date = trx['tanggal_berakhir'] # 'YYYY-MM-DD'
+        if today > expire_date:
+            messagebox.showerror("Access Denied", f"Your membership expired on {expire_date}.\nPlease renew your membership.")
+            conn.close()
+            return
+
         # CEK: apakah masih ada sesi yang BELUM clock out hari ini
         cur.execute("""
             SELECT 1
@@ -328,6 +349,27 @@ class DashboardMember(tb.Frame):
         today = date.today().isoformat()
         conn = get_connection()
         cur = conn.cursor()
+
+        # [VALIDATION NEW] Check is there any active membership
+        cur.execute("""
+            SELECT tanggal_berakhir
+            FROM transaksi_membership
+            WHERE member_id = ?
+            ORDER BY tanggal_mulai DESC
+            LIMIT 1
+        """, (self.member_id,))
+        trx = cur.fetchone()
+
+        if not trx:
+            messagebox.showerror("Access Denied", "Member dulu Woi")
+            conn.close()
+            return
+        
+        expire_date = trx['tanggal_berakhir']
+        if today > expire_date:
+            messagebox.showerror("Access Denied", f"Your membership expired on {expire_date}.")
+            conn.close()
+            return
 
         # Ambil sesi AKTIF terakhir hari ini
         cur.execute("""
